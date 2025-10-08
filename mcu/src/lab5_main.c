@@ -93,6 +93,8 @@ void EXTI0_IRQHandler(void) {
     if (EXTI->PR1 & (1 << 0)) {
         EXTI->PR1 |= (1 << 0); // clear pending
         
+        updateVelocity();
+
         int a = readPin(A_PIN);
         int b = readPin(B_PIN);
 
@@ -100,8 +102,6 @@ void EXTI0_IRQHandler(void) {
             direction = -1;  // reverse
         else
             direction = +1;  // forward
-
-        updateVelocity();
     }
 }
 
@@ -110,6 +110,8 @@ void EXTI1_IRQHandler(void) {
     if (EXTI->PR1 & (1 << 1)) {
         EXTI->PR1 |= (1 << 1); // clear pending
 
+        updateVelocity();
+
         int a = readPin(A_PIN);
         int b = readPin(B_PIN);
 
@@ -117,7 +119,5 @@ void EXTI1_IRQHandler(void) {
             direction = +1;  // forward
         else
             direction = -1;  // reverse
-
-        updateVelocity();
     }
 }
