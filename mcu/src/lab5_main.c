@@ -7,8 +7,8 @@ File function: This program uses an algorithm to sense quadrature encoder pulses
 
 #include "main.h"
 
-#define A_PIN  0 // trying to use PA0 & PA1, might be pin 6 7
-#define B_PIN  1
+#define A_PIN PA6 // trying to use PA0 & PA1, might be pin 6 7
+#define B_PIN PA9
 
 volatile uint32_t last_time = 0;
 volatile int direction = 0;   // +1 or -1
@@ -21,6 +21,9 @@ void updateVelocity(void);
 
 // Main Function
 int main(void) {
+
+    configureFlash();
+
     // Use 80 Mhz PLL
     configureClock();
     
@@ -61,18 +64,18 @@ void configureInterrupts(void) {
     RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
 
     // Configure EXTI lines for PA0 and PA1
-    SYSCFG->EXTICR[0] &= ~((0xF << 0) | (0xF << 4));  // EXTI0 & EXTI1 from PA
+    SYSCFG->EXTICR[1] |= _VAL2FLD(SYSCFG_EXTICR2_EXTI6, 0b000); // Select PA6
+    SYSCFG->EXTICR[2] |= _VAL2FLD(SYSCFG_EXTICR3_EXTI9, 0b000); // Select PA9
 
     // Unmask interrupts
-    EXTI->IMR1 |= (1 << 0) | (1 << 1);
+    EXTI->IMR1 |= (1 << 6) | (1 << 9);
 
     // Trigger on both rising and falling edges for both pins
-    EXTI->RTSR1 |= (1 << 0) | (1 << 1); 
-    EXTI->FTSR1 |= (1 << 0) | (1 << 1);
+    EXTI->RTSR1 |= (1 << 6) | (1 << 9); 
+    EXTI->FTSR1 |= (1 << 6) | (1 << 9);
 
     // Enable EXTI lines in NVIC
-    NVIC->ISER[0] |= (1 << EXTI0_IRQn);
-    NVIC->ISER[0] |= (1 << EXTI1_IRQn);
+    NVIC->ISER[0] |= (1 << EXTI9_5_IRQn);
 }
 
 // Reads timer to update velocity
@@ -89,14 +92,14 @@ void updateVelocity(void) {
 // Interrupt handlers
 
 // Interrupt signalling that pin A changed
-void EXTI0_IRQHandler(void) {
+void EXTI9_5_IRQHandler(void) {
     if (EXTI->PR1 & (1 << 0)) {
         EXTI->PR1 |= (1 << 0); // clear pending
         
         updateVelocity();
 
-        int a = readPin(A_PIN);
-        int b = readPin(B_PIN);
+        int a = digitalRead(A_PIN);
+        int b = digitalRead(B_PIN);
 
         if (a == b)
             direction = -1;  // reverse
@@ -104,16 +107,16 @@ void EXTI0_IRQHandler(void) {
             direction = +1;  // forward
     }
 }
-
+/*
 // Interrupt signalling that pin B changed
-void EXTI1_IRQHandler(void) {
+void EXTI9_IRQHandler(void) {
     if (EXTI->PR1 & (1 << 1)) {
         EXTI->PR1 |= (1 << 1); // clear pending
 
         updateVelocity();
 
-        int a = readPin(A_PIN);
-        int b = readPin(B_PIN);
+        int a = digitalRead(A_PIN);
+        int b = digitalRead(B_PIN);
 
         if (a == b)
             direction = +1;  // forward
@@ -121,3 +124,4 @@ void EXTI1_IRQHandler(void) {
             direction = -1;  // reverse
     }
 }
+*/
