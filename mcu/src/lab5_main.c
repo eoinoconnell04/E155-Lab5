@@ -13,6 +13,8 @@ File function: This program uses an algorithm to sense quadrature encoder pulses
 volatile uint32_t last_time = 0;
 volatile int direction = 0;   // +1 or -1
 volatile float velocity = 0;  // ticks per second
+static volatile uint8_t last_a; 
+static volatile uint8_t last_b; 
 
 // Function Prototypes
 void initTimer(void);
@@ -33,8 +35,8 @@ int main(void) {
     // Configure encoder pins as inputs with pull-ups
     pinMode(A_PIN, GPIO_INPUT);
     pinMode(B_PIN, GPIO_INPUT);
-    GPIOA->PUPDR |= (_VAL2FLD(GPIO_PUPDR_PUPD0, 0b01)); // PA0 pull-up
-    GPIOA->PUPDR |= (_VAL2FLD(GPIO_PUPDR_PUPD1, 0b01)); // PA1 pull-up
+    GPIOA->PUPDR |= (_VAL2FLD(GPIO_PUPDR_PUPD6, 0b01)); // PA6 pull-up
+    GPIOA->PUPDR |= (_VAL2FLD(GPIO_PUPDR_PUPD9, 0b01)); // PA9 pull-up
 
     // Initialize delay timer for printing values
     RCC->APB2ENR |= RCC_APB2ENR_TIM15EN;   
@@ -63,7 +65,7 @@ int main(void) {
 void configureInterrupts(void) {
     RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
 
-    // Configure EXTI lines for PA0 and PA1
+    // Configure EXTI lines for PA6 and PA9
     SYSCFG->EXTICR[1] |= _VAL2FLD(SYSCFG_EXTICR2_EXTI6, 0b000); // Select PA6
     SYSCFG->EXTICR[2] |= _VAL2FLD(SYSCFG_EXTICR3_EXTI9, 0b000); // Select PA9
 
@@ -84,17 +86,20 @@ void updateVelocity(void) {
     TIM2->CNT = 0; // reset timer for next interval
 
     // Compute velocity (ticks per second)
-    if (current_time != 0)
+    if (current_time != 0 && current_time < 5000) {
         velocity = 1000000 / current_time / 408 / 4; //  timer is at 1 MHz, divide by # of ticks, PPR, and # of edges 
+    } else {
+        velocity = 0; // at super slow speeds set velocity to 0
+    }
 
 }
 
 // Interrupt handlers
 
-// Interrupt signalling that pin A changed
+// Interrupt signalling that pin either pin changed
 void EXTI9_5_IRQHandler(void) {
-    if (EXTI->PR1 & (1 << 0)) {
-        EXTI->PR1 |= (1 << 0); // clear pending
+    if (EXTI->PR1 & (1 << 6)) {
+        EXTI->PR1 |= (1 << 6); // clear pending
         
         updateVelocity();
 
@@ -106,13 +111,10 @@ void EXTI9_5_IRQHandler(void) {
         else
             direction = +1;  // forward
     }
-}
-/*
-// Interrupt signalling that pin B changed
-void EXTI9_IRQHandler(void) {
-    if (EXTI->PR1 & (1 << 1)) {
-        EXTI->PR1 |= (1 << 1); // clear pending
 
+    if (EXTI->PR1 & (1 << 9)) {
+        EXTI->PR1 |= (1 << 9); // clear pending
+        
         updateVelocity();
 
         int a = digitalRead(A_PIN);
@@ -124,4 +126,3 @@ void EXTI9_IRQHandler(void) {
             direction = -1;  // reverse
     }
 }
-*/
