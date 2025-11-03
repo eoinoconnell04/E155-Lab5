@@ -47,48 +47,39 @@ int main(void) {
     int prev_a = digitalRead(A_PIN);
     int prev_b = digitalRead(B_PIN);
 
-    while (1) {
-        delay_millis(DELAY_TIM, 1);  // small delay for stability
+    uint32_t last_print_time = 0;
 
+    while (1) {
         int cur_a = digitalRead(A_PIN);
         int cur_b = digitalRead(B_PIN);
 
-        // Check if any edge occurred
         if ((cur_a != prev_a) || (cur_b != prev_b)) {
-            // Update time and velocity
             last_time = current_time;
             current_time = TIM2->CNT;
 
             int delta = current_time - last_time;
+            if (delta > 0)
+                velocity = 1000000.0f / (float)delta / 408.0f / 4.0f;
 
-            if (delta > 0) {
-                velocity = 1000000.0f / (float)delta / 408.0f / 4.0f; // timer at 1 MHz, divide by PPR and edges
-            }
-
-            // Determine direction based on quadrature logic
-            if (prev_a == prev_b) {
+            // Direction logic
+            if (prev_a == prev_b)
                 direction = (cur_a == cur_b) ? -1 : +1;
-            } else {
+            else
                 direction = (cur_a == cur_b) ? +1 : -1;
-            }
 
             prev_a = cur_a;
             prev_b = cur_b;
         }
 
-        // Check for long stop (no pulses)
-        volatile uint32_t now = TIM2->CNT;
-        if ((now - current_time) > 100000) {
+        // Reset velocity if stopped
+        if ((TIM2->CNT - current_time) > 100000)
             velocity = 0;
-        }
 
-        // Print current velocity and direction
-        if (direction == 1) {
-            printf("%.2f Hz CW\n", velocity);
-        } else {
-            printf("%.2f Hz CCW\n", velocity);
+        // Print only every 200 ms
+        uint32_t now = TIM2->CNT;
+        if ((now - last_print_time) > 200000) { // 200 ms at 1 MHz timer
+            last_print_time = now;
+            printf("%.2f Hz %s\n", velocity, (direction == 1) ? "CW" : "CCW");
         }
-
-        delay_millis(DELAY_TIM, 200); // periodic print
     }
 }

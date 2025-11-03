@@ -52,19 +52,19 @@ int main(void) {
     __enable_irq();
 
     while (1) {
-        delay_millis(DELAY_TIM, 200);
+        delay_millis(DELAY_TIM, 800);
 
         
         volatile uint32_t now = TIM2->CNT;
-        printf("Current Time: %d \n", now);
+        //printf("Current Time: %d \n", now);
         if ((now - current_time) > 100000) { // if too long between interrupts then assume fully stopped
             velocity = 0;
         }
         if (direction == 1){
-            printf("%.2f Hz CW\n", velocity);
+            printf("%.3f Hz CW\n", velocity);
         }
         else {
-            printf("%.2f Hz CCW\n", velocity);
+            printf("%.3f Hz CCW\n", velocity);
         }
     }
 }
@@ -93,7 +93,7 @@ void updateVelocity(void) {
     current_time = TIM2->CNT; // read current time
 
     // Compute velocity (ticks per second)
-    velocity = 1000000.0f / (float)(current_time - last_time) / 408.0f / 4.0f;  //  timer is at 1 MHz, divide by # of ticks, PPR, and # of edges 
+    velocity = 1000000.0f / (float)(current_time - last_time) / 408.0f / 2.0f;  //  timer is at 1 MHz, divide by # of ticks, PPR, and # of edges 
 
 }
 
@@ -115,8 +115,8 @@ void EXTI9_5_IRQHandler(void) {
 
     if (EXTI->PR1 & (1 << 9)) {
         EXTI->PR1 |= (1 << 9); // clear pending
-        
-        updateVelocity();
+
+        // updateVelocity(); removing for smoother output
 
         int a = digitalRead(A_PIN);
         int b = digitalRead(B_PIN);
