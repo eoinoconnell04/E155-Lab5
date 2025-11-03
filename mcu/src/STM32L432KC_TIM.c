@@ -17,11 +17,13 @@ void initTIM(TIM_TypeDef * TIMx){
 }
 
 void initCounterTIM(TIM_TypeDef * TIMx){
-  // Set prescaler to give 1 Hz fq
-  uint32_t psc_div = (uint32_t) ((SystemCoreClock/80));
-
+  // Set prescaler to give 1 MHz fq
+  uint32_t psc_div = 80;
   // Set prescaler division factor
   TIMx->PSC = (psc_div - 1);
+
+  // set ARR
+  TIMx->ARR = 0xFFFFFFFF; // free-running
   // Generate an update event to update prescaler value
   TIMx->EGR |= 1;
   // Enable counter

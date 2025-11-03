@@ -7,19 +7,19 @@ File function: This program uses an algorithm to sense quadrature encoder pulses
 
 #include "main.h"
 
-#define A_PIN PA6 // trying to use PA0 & PA1, might be pin 6 7
+#define A_PIN PA6 
 #define B_PIN PA9
 
 volatile uint32_t last_time = 0;
+volatile uint32_t current_time = 0; 
 volatile int direction = 0;   // +1 or -1
 volatile float velocity = 0;  // ticks per second
-static volatile uint8_t last_a; 
-static volatile uint8_t last_b; 
 
 // Function Prototypes
 void initTimer(void);
 void configureInterrupts(void);
 void updateVelocity(void);
+int _write(int file, char *ptr, int len);
 
 // Main Function
 int main(void) {
@@ -53,6 +53,13 @@ int main(void) {
 
     while (1) {
         delay_millis(DELAY_TIM, 200);
+
+        
+        volatile uint32_t now = TIM2->CNT;
+        printf("Current Time: %d \n", now);
+        if ((now - current_time) > 100000) { // if too long between interrupts then assume fully stopped
+            velocity = 0;
+        }
         if (direction == 1){
             printf("%.2f Hz CW\n", velocity);
         }
@@ -82,21 +89,15 @@ void configureInterrupts(void) {
 
 // Reads timer to update velocity
 void updateVelocity(void) {
-    uint32_t current_time = TIM2->CNT; // read current time
-    TIM2->CNT = 0; // reset timer for next interval
+    last_time = current_time; // save previous value
+    current_time = TIM2->CNT; // read current time
 
     // Compute velocity (ticks per second)
-    if (current_time != 0 && current_time < 5000) {
-        velocity = 1000000 / current_time / 408 / 4; //  timer is at 1 MHz, divide by # of ticks, PPR, and # of edges 
-    } else {
-        velocity = 0; // at super slow speeds set velocity to 0
-    }
+    velocity = 1000000.0f / (float)(current_time - last_time) / 408.0f / 4.0f;  //  timer is at 1 MHz, divide by # of ticks, PPR, and # of edges 
 
 }
 
-// Interrupt handlers
-
-// Interrupt signalling that pin either pin changed
+// Interrupt handler (same handler for both pin a6 and a9)
 void EXTI9_5_IRQHandler(void) {
     if (EXTI->PR1 & (1 << 6)) {
         EXTI->PR1 |= (1 << 6); // clear pending
@@ -125,4 +126,13 @@ void EXTI9_5_IRQHandler(void) {
         else
             direction = -1;  // reverse
     }
+}
+
+// Function used by printf to send characters to the laptop (taken from E155 website)
+int _write(int file, char *ptr, int len) {
+  int i = 0;
+  for (i = 0; i < len; i++) {
+    ITM_SendChar((*ptr++));
+  }
+  return len;
 }

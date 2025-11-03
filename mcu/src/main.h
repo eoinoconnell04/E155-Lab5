@@ -9,6 +9,8 @@
 #include "STM32L432KC.h"
 #include <stm32l432xx.h>
 #include "STM32L432KC_TIM.h"
+// #include <stdio.h>
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Custom defines
