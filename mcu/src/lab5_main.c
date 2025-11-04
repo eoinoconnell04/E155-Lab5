@@ -98,6 +98,8 @@ void updateVelocity(void) {
 }
 
 // Interrupt handler (same handler for both pin a6 and a9)
+// Triggers: Rising and Falling Edges of Both pins a6 and pins a9
+// Effects: changes the velocity and direction variables (velocity variabled changed through sub function updateVelocity)
 void EXTI9_5_IRQHandler(void) {
     if (EXTI->PR1 & (1 << 6)) {
         EXTI->PR1 |= (1 << 6); // clear pending
